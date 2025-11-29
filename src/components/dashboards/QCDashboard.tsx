@@ -6,18 +6,12 @@ import { useNavigate } from "react-router-dom";
 
 export default function QCDashboard() {
   const navigate = useNavigate();
-  const qcComplaints = complaints.filter(c => [
-    'FORWARDED_TO_QC',
-    'QC_VALIDATED',
-    'REPLACED',
-    'FINANCE_UPDATED',
-    'CLOSED'
-  ].includes(c.status));
+  const qcComplaints = complaints;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>QC Complaints</CardTitle>
+        <CardTitle>All Complaints (QC View)</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

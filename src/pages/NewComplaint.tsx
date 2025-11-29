@@ -7,11 +7,12 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { complaints, products } from '../lib/mock-data';
+import { complaints, products, issueTypes } from '../lib/mock-data';
 
 export default function NewComplaint() {
   const navigate = useNavigate();
   const [product, setProduct] = useState('');
+  const [issueType, setIssueType] = useState('');
   const [sku, setSku] = useState('');
   const [batchNumber, setBatchNumber] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -19,11 +20,16 @@ export default function NewComplaint() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!product || !issueType) {
+        toast.error('Please select a product and issue type.');
+        return;
+    }
     const newComplaint = {
       id: (complaints.length + 1).toString(),
       complaint_code: `CMP-00000${complaints.length + 1}`,
-      outletName: 'Current Outlet', // Replace with actual outlet name from auth context
+      outletName: 'Current Outlet',
       product,
+      issueType,
       sku,
       batchNumber,
       quantity: parseInt(quantity, 10),
@@ -58,6 +64,21 @@ export default function NewComplaint() {
                   {products.map((p) => (
                     <SelectItem key={p} value={p}>
                       {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='issueType'>Issue Type</Label>
+              <Select onValueChange={setIssueType} required>
+                <SelectTrigger>
+                  <SelectValue placeholder='Select an issue type' />
+                </SelectTrigger>
+                <SelectContent>
+                  {issueTypes.map((it) => (
+                    <SelectItem key={it} value={it}>
+                      {it}
                     </SelectItem>
                   ))}
                 </SelectContent>

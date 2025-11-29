@@ -25,10 +25,15 @@ export let users = [
   { id: '7', name: 'Richard Miller', email: 'richard.miller@example.com', role: 'EXCO', department: 'Management', status: 'Active' },
 ];
 
-export let issueTypes = [
-    { id: '1', name: 'Product Quality', description: 'Issues related to the quality of the product.' },
-    { id: '2', name: 'Packaging', description: 'Issues related to the packaging of the product.' },
-    { id: '3', name: 'Foreign Object', description: 'Foreign objects found in the product.' },
+export const issueTypes = [
+  'Broken bottle',
+  'Underfilled bottle',
+  'Over-carbonated',
+  'Leakage',
+  'Foreign material inside',
+  'Bad smell/taste',
+  'Label defect',
+  'Other'
 ];
 
 export let complaints = [
@@ -37,6 +42,7 @@ export let complaints = [
     complaint_code: 'CMP-000001',
     outletName: 'Zuri Bar',
     product: 'St. George Lager Beer',
+    issueType: 'Bad smell/taste',
     sku: 'SG001',
     batchNumber: 'B001',
     quantity: 10,
@@ -52,6 +58,7 @@ export let complaints = [
     complaint_code: 'CMP-000002',
     outletName: 'Asante Grill',
     product: 'Meta Bremer',
+    issueType: 'Underfilled bottle',
     sku: 'MB001',
     batchNumber: 'B002',
     quantity: 5,
@@ -70,6 +77,7 @@ export let complaints = [
     complaint_code: 'CMP-000003',
     outletName: 'Karibu Lounge',
     product: 'Castel Beer',
+    issueType: 'Broken bottle',
     sku: 'CB001',
     batchNumber: 'B003',
     quantity: 12,

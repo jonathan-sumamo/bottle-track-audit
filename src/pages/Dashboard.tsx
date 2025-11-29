@@ -8,21 +8,21 @@ import FinanceDashboard from "../components/dashboards/FinanceDashboard";
 import ExcoDashboard from "../components/dashboards/ExcoDashboard";
 
 export default function Dashboard() {
-  const { role } = useAuth();
+  const { user } = useAuth();
 
   const renderDashboard = () => {
-    switch (role) {
-      case 'Admin':
+    switch (user?.role) {
+      case 'ADMIN':
         return <AdminDashboard />;
-      case 'Sales Rep':
+      case 'SALES_REP':
         return <SalesRepDashboard />;
-      case 'Outlet':
+      case 'OUTLET_USER':
         return <OutletDashboard />;
-      case 'QC Lab':
+      case 'QC_LAB':
         return <QCDashboard />;
-      case 'Warehouse FGS':
+      case 'FGS_WAREHOUSE':
         return <WarehouseDashboard />;
-      case 'Finance':
+      case 'FINANCE':
         return <FinanceDashboard />;
       case 'EXCO':
         return <ExcoDashboard />;

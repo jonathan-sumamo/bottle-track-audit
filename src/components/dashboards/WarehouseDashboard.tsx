@@ -6,12 +6,12 @@ import { useNavigate } from "react-router-dom";
 
 export default function WarehouseDashboard() {
   const navigate = useNavigate();
-  const warehouseComplaints = complaints.filter(c => c.status === 'QC_VALIDATED');
+  const warehouseComplaints = complaints;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Warehouse Complaints (Ready for Replacement)</CardTitle>
+        <CardTitle>All Complaints (Warehouse View)</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

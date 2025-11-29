@@ -4,12 +4,13 @@ import { complaints } from "../../lib/mock-data";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function OutletDashboard() {
   const navigate = useNavigate();
-  // Assuming 'Current Outlet' is the logged in user. 
-  // In a real app, this would come from the auth context.
-  const outletComplaints = complaints.filter(c => c.outletName === 'Zuri Bar' || c.outletName === 'Asante Grill' || c.outletName === 'Karibu Lounge');
+  const { user } = useAuth();
+  
+  const outletComplaints = complaints.filter(c => c.outletName === user?.name);
 
   return (
     <Card>
@@ -23,6 +24,7 @@ export default function OutletDashboard() {
             <TableRow>
               <TableHead>Complaint ID</TableHead>
               <TableHead>Product</TableHead>
+              <TableHead>Issue Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
             </TableRow>
@@ -32,6 +34,7 @@ export default function OutletDashboard() {
               <TableRow key={complaint.id} onClick={() => navigate(`/complaint/${complaint.id}`)} className='cursor-pointer'>
                 <TableCell>{complaint.complaint_code}</TableCell>
                 <TableCell>{complaint.product}</TableCell>
+                <TableCell>{complaint.issueType}</TableCell>
                 <TableCell><Badge>{complaint.status}</Badge></TableCell>
                 <TableCell>{complaint.date}</TableCell>
               </TableRow>

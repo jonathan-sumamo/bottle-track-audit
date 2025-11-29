@@ -4,8 +4,10 @@ import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { users as initialUsers, issueTypes as initialIssueTypes } from '../../lib/mock-data';
+import { users as initialUsers, issueTypes as initialIssueTypes, complaints } from '../../lib/mock-data';
 import { toast } from 'sonner';
+import { Badge } from '../ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 function UserManagement() {
   const [users, setUsers] = useState(initialUsers);
@@ -95,20 +97,20 @@ function UserManagement() {
 
 function IssueTypeManagement() {
   const [issueTypes, setIssueTypes] = useState(initialIssueTypes);
-  const [newIssueType, setNewIssueType] = useState({ name: '', description: '' });
+  const [newIssueType, setNewIssueType] = useState('');
 
   const handleAdd = () => {
-    if (newIssueType.name.trim() === '') {
+    if (newIssueType.trim() === '') {
         toast.error('Issue type name cannot be empty');
         return;
     }
-    setIssueTypes([...issueTypes, { id: (issueTypes.length + 1).toString(), ...newIssueType }]);
-    setNewIssueType({ name: '', description: '' });
+    setIssueTypes([...issueTypes, newIssueType]);
+    setNewIssueType('');
     toast.success('Issue type added successfully!');
   };
 
-  const handleDelete = (id) => {
-    setIssueTypes(issueTypes.filter(it => it.id !== id));
+  const handleDelete = (issueToDelete) => {
+    setIssueTypes(issueTypes.filter(it => it !== issueToDelete));
     toast.success('Issue type deleted successfully!');
   }
 
@@ -119,25 +121,22 @@ function IssueTypeManagement() {
       </CardHeader>
       <CardContent className='space-y-4'>
         <div className='flex gap-2'>
-          <Input placeholder='New Issue Type Name' value={newIssueType.name} onChange={(e) => setNewIssueType({...newIssueType, name: e.target.value})} />
-          <Input placeholder='Description' value={newIssueType.description} onChange={(e) => setNewIssueType({...newIssueType, description: e.target.value})} />
+          <Input placeholder='New Issue Type Name' value={newIssueType} onChange={(e) => setNewIssueType(e.target.value)} />
           <Button onClick={handleAdd}>Add Issue Type</Button>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {issueTypes.map((issue) => (
-              <TableRow key={issue.id}>
-                <TableCell>{issue.name}</TableCell>
-                <TableCell>{issue.description}</TableCell>
+              <TableRow key={issue}>
+                <TableCell>{issue}</TableCell>
                 <TableCell>
-                    <Button onClick={() => handleDelete(issue.id)} size='sm' variant='destructive'>Delete</Button>
+                    <Button onClick={() => handleDelete(issue)} size='sm' variant='destructive'>Delete</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -148,15 +147,52 @@ function IssueTypeManagement() {
   );
 }
 
+function ComplaintsList() {
+    const navigate = useNavigate();
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>All Complaints</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Complaint ID</TableHead>
+                            <TableHead>Outlet</TableHead>
+                            <TableHead>Product</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Date</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {complaints.map((complaint) => (
+                            <TableRow key={complaint.id} onClick={() => navigate(`/complaint/${complaint.id}`)} className='cursor-pointer'>
+                                <TableCell>{complaint.complaint_code}</TableCell>
+                                <TableCell>{complaint.outletName}</TableCell>
+                                <TableCell>{complaint.product}</TableCell>
+                                <TableCell><Badge>{complaint.status}</Badge></TableCell>
+                                <TableCell>{complaint.date}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    )
+}
+
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('userManagement');
+  const [activeTab, setActiveTab] = useState('complaints');
 
   return (
     <div className='space-y-4'>
         <div className='flex gap-2'>
+            <Button onClick={() => setActiveTab('complaints')} variant={activeTab === 'complaints' ? 'default' : 'outline'}>All Complaints</Button>
             <Button onClick={() => setActiveTab('userManagement')} variant={activeTab === 'userManagement' ? 'default' : 'outline'}>User Management</Button>
             <Button onClick={() => setActiveTab('issueTypes')} variant={activeTab === 'issueTypes' ? 'default' : 'outline'}>Issue Types Management</Button>
         </div>
+      {activeTab === 'complaints' && <ComplaintsList />}
       {activeTab === 'userManagement' && <UserManagement />}
       {activeTab === 'issueTypes' && <IssueTypeManagement />}
     </div>
