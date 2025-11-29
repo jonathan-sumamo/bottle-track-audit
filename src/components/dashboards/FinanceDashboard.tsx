@@ -6,12 +6,12 @@ import { useNavigate } from "react-router-dom";
 
 export default function FinanceDashboard() {
   const navigate = useNavigate();
-  const financeComplaints = complaints.filter(c => c.status === 'REPLACED' || c.status === 'FINANCE_UPDATED');
+  const financeComplaints = complaints.filter(c => c.status === 'PENDING_FINANCE_APPROVAL');
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Complaints for Financial Processing</CardTitle>
+        <CardTitle>Complaints for Financial Approval</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

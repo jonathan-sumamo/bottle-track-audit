@@ -6,12 +6,12 @@ import { useNavigate } from "react-router-dom";
 
 export default function WarehouseDashboard() {
   const navigate = useNavigate();
-  const warehouseComplaints = complaints;
+  const warehouseComplaints = complaints.filter(c => ['VERIFIED_BY_SALES', 'FORWARDED_TO_FGS'].includes(c.status));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>All Complaints (Warehouse View)</CardTitle>
+        <CardTitle>Complaints for Warehouse Processing</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

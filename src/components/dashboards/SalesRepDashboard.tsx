@@ -3,15 +3,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { complaints } from "../../lib/mock-data";
 import { Badge } from "../ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function SalesRepDashboard() {
   const navigate = useNavigate();
-  const salesRepComplaints = complaints.filter(c => c.status === 'NEW' || c.status === 'VERIFIED_BY_SALES');
+  const { user } = useAuth();
+
+  // For a sales rep, we might show complaints from outlets they manage.
+  // This is a simplified version. A real app would have a mapping.
+  const salesRepComplaints = complaints.filter(c => c.status === 'NEW');
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Complaints for Verification</CardTitle>
+        <CardTitle>New Complaints for Verification</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

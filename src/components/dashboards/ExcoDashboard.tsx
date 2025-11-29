@@ -6,11 +6,13 @@ import { useNavigate } from "react-router-dom";
 
 export default function ExcoDashboard() {
   const navigate = useNavigate();
+  // EXCO might see all high-priority or escalated complaints
+  const excoComplaints = complaints.filter(c => ['PENDING_EXCO_APPROVAL', 'CLOSED'].includes(c.status));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>All Complaints</CardTitle>
+        <CardTitle>Executive Committee Complaint Overview</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
@@ -24,12 +26,12 @@ export default function ExcoDashboard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {complaints.map((complaint) => (
+            {excoComplaints.map((complaint) => (
               <TableRow key={complaint.id} onClick={() => navigate(`/complaint/${complaint.id}`)} className='cursor-pointer'>
                 <TableCell>{complaint.complaint_code}</TableCell>
                 <TableCell>{complaint.outletName}</TableCell>
                 <TableCell>{complaint.product}</TableCell>
-                <TableCell><Badge>{complaint.status}</Badge></TableCell>
+                <TableCell><Badge variant={complaint.status === 'CLOSED' ? 'secondary' : 'default'}>{complaint.status}</Badge></TableCell>
                 <TableCell>{complaint.date}</TableCell>
               </TableRow>
             ))}
