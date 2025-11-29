@@ -1,115 +1,93 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { toast } from 'sonner';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft } from 'lucide-react';
-
-const complaintSchema = z.object({
-  batchNo: z.string().min(1, 'Batch number is required'),
-  bottleType: z.string().min(1, 'Please select a bottle type'),
-  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-  issueType: z.string().min(1, 'Please select an issue type'),
-  photos: z.instanceof(FileList).refine(files => files.length >= 3, 'Please upload at least 3 photos'),
-  description: z.string().optional(),
-});
-
-type ComplaintFormValues = z.infer<typeof complaintSchema>;
+import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { complaints, products } from '../lib/mock-data';
 
 export default function NewComplaint() {
   const navigate = useNavigate();
-  const { register, handleSubmit, control, formState: { errors } } = useForm<ComplaintFormValues>({
-    resolver: zodResolver(complaintSchema),
-  });
+  const [product, setProduct] = useState('');
+  const [sku, setSku] = useState('');
+  const [batchNumber, setBatchNumber] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [description, setDescription] = useState('');
 
-  const onSubmit = (data: ComplaintFormValues) => {
-    console.log(data);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newComplaint = {
+      id: (complaints.length + 1).toString(),
+      complaint_code: `CMP-00000${complaints.length + 1}`,
+      outletName: 'Current Outlet', // Replace with actual outlet name from auth context
+      product,
+      sku,
+      batchNumber,
+      quantity: parseInt(quantity, 10),
+      description,
+      images: [],
+      status: 'NEW',
+      date: new Date().toISOString().split('T')[0],
+      history: [{ status: 'NEW', date: new Date().toISOString().split('T')[0], comment: 'Complaint submitted.' }],
+      submittedBy: 'Outlet',
+    };
+    complaints.push(newComplaint);
     toast.success('Complaint submitted successfully!');
-    navigate('/');
+    navigate('/dashboard');
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-       <Button variant="outline" size="sm" className="mb-4" onClick={() => navigate(-1)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
-        </Button>
-      <Card>
-        <CardHeader>
-          <CardTitle>Submit New Complaint</CardTitle>
-        </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="batchNo">Batch No</Label>
-                <Input id="batchNo" {...register('batchNo')} />
-                {errors.batchNo && <p className="text-sm text-red-600">{errors.batchNo.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" type="number" {...register('quantity')} />
-                {errors.quantity && <p className="text-sm text-red-600">{errors.quantity.message}</p>}
-              </div>
+    <div className='flex justify-center items-center h-full p-4'>
+        <Card className='w-full max-w-2xl'>
+      <CardHeader>
+        <CardTitle>Register a New Complaint</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className='space-y-4'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='space-y-2'>
+              <Label htmlFor='product'>Product</Label>
+              <Select onValueChange={setProduct} required>
+                <SelectTrigger>
+                  <SelectValue placeholder='Select a product' />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <Label htmlFor="bottleType">Bottle Type</Label>
-                    <Select onValueChange={(value) => control._setValue('bottleType', value)}>
-                    <SelectTrigger id="bottleType">
-                        <SelectValue placeholder="Select a bottle type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="300ml-glass">300ml Glass</SelectItem>
-                        <SelectItem value="500ml-glass">500ml Glass</SelectItem>
-                        <SelectItem value="1l-plastic">1L Plastic</SelectItem>
-                        <SelectItem value="1.5l-plastic">1.5L Plastic</SelectItem>
-                        <SelectItem value="crate">Crate</SelectItem>
-                    </SelectContent>
-                    </Select>
-                    {errors.bottleType && <p className="text-sm text-red-600">{errors.bottleType.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="issueType">Issue Type</Label>
-                    <Select onValueChange={(value) => control._setValue('issueType', value)}>
-                    <SelectTrigger id="issueType">
-                        <SelectValue placeholder="Select an issue type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="broken">Broken</SelectItem>
-                        <SelectItem value="chipped">Chipped</SelectItem>
-                        <SelectItem value="contaminated">Contaminated</SelectItem>
-                        <SelectItem value="misprinted-label">Misprinted Label</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                    </Select>
-                    {errors.issueType && <p className="text-sm text-red-600">{errors.issueType.message}</p>}
-                </div>
+            <div className='space-y-2'>
+              <Label htmlFor='sku'>SKU</Label>
+              <Input id='sku' value={sku} onChange={(e) => setSku(e.target.value)} placeholder='Enter SKU' required />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="photos">Upload Photos (min 3)</Label>
-              <Input id="photos" type="file" {...register('photos')} multiple accept="image/*" />
-              {errors.photos && <p className="text-sm text-red-600">{errors.photos.message}</p>}
+            <div className='space-y-2'>
+              <Label htmlFor='batchNumber'>Batch Number</Label>
+              <Input id='batchNumber' value={batchNumber} onChange={(e) => setBatchNumber(e.target.value)} placeholder='Enter Batch Number' required />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea id="description" {...register('description')} />
+            <div className='space-y-2'>
+              <Label htmlFor='quantity'>Quantity</Label>
+              <Input id='quantity' type='number' value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder='Enter Quantity' required />
             </div>
-          </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button type="submit">Submit Complaint</Button>
-          </CardFooter>
+          </div>
+          <div className='space-y-2'>
+            <Label htmlFor='description'>Description of Complaint</Label>
+            <Textarea id='description' value={description} onChange={(e) => setDescription(e.target.value)} placeholder='Describe the issue in detail' required />
+          </div>
+          <div className='space-y-2'>
+            <Label htmlFor='photos'>Upload Photos (Optional)</Label>
+            <Input id='photos' type='file' multiple />
+          </div>
+          <Button type='submit' className='w-full'>Submit Complaint</Button>
         </form>
-      </Card>
+      </CardContent>
+    </Card>
     </div>
   );
 }

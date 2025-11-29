@@ -1,0 +1,87 @@
+export const products = [
+  'St. George Lager Beer',
+  'St. George Amber Beer',
+  'St. George Panach\' Shandy',
+  'Meta Bremer',
+  'Meta Decor',
+  'Raya',
+  'Castel Beer',
+  'Zebidar',
+  'Draft beer',
+  'Xuma',
+  'Doppel Brown Beer',
+  'Acacia',
+  'Rift Valley',
+  'Sen\'q Malt',
+];
+
+export let users = [
+  { id: '1', name: 'John Doe', email: 'john.doe@example.com', role: 'Admin', department: 'IT', status: 'Active' },
+  { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Sales Rep', department: 'Sales', status: 'Active' },
+  { id: '3', name: 'Peter Jones', email: 'peter.jones@example.com', role: 'Outlet', department: 'N/A', status: 'Inactive' },
+  { id: '4', name: 'Mary Williams', email: 'mary.williams@example.com', role: 'QC Lab', department: 'Quality', status: 'Active' },
+  { id: '5', name: 'David Brown', email: 'david.brown@example.com', role: 'Warehouse FGS', department: 'Logistics', status: 'Active' },
+  { id: '6', name: 'Susan Davis', email: 'susan.davis@example.com', role: 'Finance', department: 'Finance', status: 'Active' },
+  { id: '7', name: 'Richard Miller', email: 'richard.miller@example.com', role: 'EXCO', department: 'Management', status: 'Active' },
+];
+
+export let issueTypes = [
+    { id: '1', name: 'Product Quality', description: 'Issues related to the quality of the product.' },
+    { id: '2', name: 'Packaging', description: 'Issues related to the packaging of the product.' },
+    { id: '3', name: 'Foreign Object', description: 'Foreign objects found in the product.' },
+];
+
+export let complaints = [
+  {
+    id: '1',
+    complaint_code: 'CMP-000001',
+    outletName: 'Zuri Bar',
+    product: 'St. George Lager Beer',
+    sku: 'SG001',
+    batchNumber: 'B001',
+    quantity: 10,
+    description: 'Beer tastes flat.',
+    images: [],
+    status: 'NEW',
+    date: '2025-11-20',
+    history: [{ status: 'NEW', date: '2025-11-20', comment: 'Complaint submitted.' }],
+    submittedBy: 'Outlet',
+  },
+  {
+    id: '2',
+    complaint_code: 'CMP-000002',
+    outletName: 'Asante Grill',
+    product: 'Meta Bremer',
+    sku: 'MB001',
+    batchNumber: 'B002',
+    quantity: 5,
+    description: 'Bottle was not full.',
+    images: [],
+    status: 'VERIFIED_BY_SALES',
+    date: '2025-11-18',
+    history: [
+      { status: 'NEW', date: '2025-11-18', comment: 'Complaint submitted.' },
+      { status: 'VERIFIED_BY_SALES', date: '2025-11-19', comment: 'Verified by sales rep.' },
+    ],
+    submittedBy: 'Outlet',
+  },
+  {
+    id: '3',
+    complaint_code: 'CMP-000003',
+    outletName: 'Karibu Lounge',
+    product: 'Castel Beer',
+    sku: 'CB001',
+    batchNumber: 'B003',
+    quantity: 12,
+    description: 'Broken seal on several bottles.',
+    images: [],
+    status: 'FORWARDED_TO_QC',
+    date: '2025-11-15',
+    history: [
+      { status: 'NEW', date: '2025-11-15', comment: 'Complaint submitted.' },
+      { status: 'VERIFIED_BY_SALES', date: '2025-11-16', comment: 'Verified by sales rep.' },
+      { status: 'FORWARDED_TO_QC', date: '2025-11-17', comment: 'Forwarded to QC for investigation.' },
+    ],
+    submittedBy: 'Outlet',
+  },
+];

@@ -1,16 +1,67 @@
+import { useAuth, User, UserRole } from '../contexts/AuthContext';
+import { Button } from './ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 import { Link } from 'react-router-dom';
+import { Home, PlusCircle } from 'lucide-react';
 
-export default function Header() {
+const Header = () => {
+  const { user, setUser, users } = useAuth();
+
+  const handleRoleChange = (role: UserRole) => {
+    const newUser = users.find(u => u.role === role);
+    if (newUser) {
+      setUser(newUser);
+    }
+  };
+
   return (
-    <header className="bg-white shadow-sm">
+    <header className="bg-white dark:bg-gray-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
-          <Link to="/" className="flex items-center space-x-3">
-            <img className="h-10 w-auto" src="https://storage.googleapis.com/dala-prod-public-storage/generated-images/b7f8892a-250e-417a-ad23-8285bbf5ba9a/chupasys-logo-gp5yqhf-1764444847190.webp" alt="ChupaSys Logo" />
-            <span className="text-2xl font-bold text-gray-800">ChupaSys</span>
-          </Link>
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center space-x-4">
+            <Link to="/dashboard" className="text-2xl font-bold text-gray-900 dark:text-white">
+              Panga Complaints
+            </Link>
+            <nav className="hidden md:flex items-center space-x-4">
+                <Button variant="ghost" asChild>
+                    <Link to="/dashboard"><Home className="mr-2 h-4 w-4"/>Dashboard</Link>
+                </Button>
+                {user?.role === 'OUTLET_USER' && (
+                    <Button variant="ghost" asChild>
+                        <Link to="/new-complaint"><PlusCircle className="mr-2 h-4 w-4"/>New Complaint</Link>
+                    </Button>
+                )}
+            </nav>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div className="text-right">
+              <p className="font-semibold text-gray-900 dark:text-white">{user?.name}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{user?.role.replace(/_/g, ' ')}</p>
+            </div>
+            <div>
+                <Select onValueChange={handleRoleChange} value={user?.role}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Switch Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {users.map((u: User) => (
+                            <SelectItem key={u.id} value={u.role}>{u.role.replace(/_/g, ' ')}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+          </div>
         </div>
       </div>
     </header>
   );
-}
+};
+
+export default Header;
