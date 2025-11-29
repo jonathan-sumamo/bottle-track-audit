@@ -1,51 +1,72 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
 
-// 1. UPDATED: Role definitions to match the new workflow
-export type UserRole = 'OUTLET_USER' | 'SALES_REP' | 'FGS_WAREHOUSE' | 'QC_LAB' | 'FINANCE' | 'ADMIN' | 'EXCO';
+export type UserRole = 'Outlet' | 'Sales Rep' | 'FGS Warehouse' | 'QC Lab' | 'Finance' | 'Admin' | 'EXCO';
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: UserRole;
-  department?: string;
 }
-
-// 2. UPDATED: Mock users with new roles
-const users: User[] = [
-  { id: 1, name: 'Jitahidi Mart', email: 'outlet@example.com', role: 'OUTLET_USER', department: 'Sales' },
-  { id: 2, name: 'Asha Juma', email: 'sales@example.com', role: 'SALES_REP', department: 'Sales' },
-  { id: 3, name: 'Baraka Warehouse', email: 'fgs@example.com', role: 'FGS_WAREHOUSE', department: 'Supply Chain' },
-  { id: 4, name: 'Maabara Labs', email: 'qc@example.com', role: 'QC_LAB', department: 'Quality' },
-  { id: 5, name: 'Hesabu Finance', email: 'finance@example.com', role: 'FINANCE', department: 'Finance' },
-  { id: 6, name: 'Admin User', email: 'admin@example.com', role: 'ADMIN', department: 'IT' },
-  { id: 7, name: 'Halima CEO', email: 'exco@example.com', role: 'EXCO', department: 'Management' },
-];
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => void;
+  token: string | null;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  setUser: (user: User | null) => void; // Allow direct user setting for role switching
-  users: User[];
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(users[0]); // Default to Outlet User
+const API_URL = 'http://localhost:4000';
 
-  const login = (email: string) => {
-    const foundUser = users.find(u => u.email === email);
-    setUser(foundUser || null);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+    }
+    setLoading(false);
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      setToken(token);
+      setUser(user);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      toast.success('Login successful!');
+    } catch (error: any) {
+      console.error('Login failed', error);
+      toast.error(error.response?.data?.message || 'Login failed');
+      throw error;
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
+    setToken(null);
+    delete axios.defaults.headers.common['Authorization'];
+    toast.info('You have been logged out.');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, setUser, users }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

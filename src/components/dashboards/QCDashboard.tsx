@@ -1,12 +1,33 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
-import { complaints } from "../../lib/mock-data";
 import { Badge } from "../ui/badge";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'sonner';
+
+const API_URL = 'http://localhost:4000/api';
 
 export default function QCDashboard() {
   const navigate = useNavigate();
-  const qcComplaints = complaints.filter(c => c.status === 'FORWARDED_TO_QC');
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/complaints`);
+        setComplaints(response.data);
+      } catch (error) {
+        toast.error('Failed to fetch complaints for QC.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchComplaints();
+  }, []);
+
+  if (loading) return <div>Loading complaints for analysis...</div>;
 
   return (
     <Card>
@@ -19,19 +40,19 @@ export default function QCDashboard() {
             <TableRow>
               <TableHead>Complaint ID</TableHead>
               <TableHead>Outlet</TableHead>
-              <TableHead>Product</TableHead>
+              <TableHead>Product (SKU)</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {qcComplaints.map((complaint) => (
+            {complaints.map((complaint: any) => (
               <TableRow key={complaint.id} onClick={() => navigate(`/complaint/${complaint.id}`)} className='cursor-pointer'>
                 <TableCell>{complaint.complaint_code}</TableCell>
-                <TableCell>{complaint.outletName}</TableCell>
-                <TableCell>{complaint.product}</TableCell>
+                <TableCell>{complaint.outlet_name}</TableCell>
+                <TableCell>{complaint.sku}</TableCell>
                 <TableCell><Badge>{complaint.status}</Badge></TableCell>
-                <TableCell>{complaint.date}</TableCell>
+                <TableCell>{new Date(complaint.created_at).toLocaleDateString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>

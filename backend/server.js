@@ -1,10 +1,10 @@
-require('dotenv').config();
+require('dotenv').config({ path: './.env' });
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
@@ -13,21 +13,12 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Database Connection
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_DATABASE,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
-pool.connect((err) => {
-    if (err) {
-        console.error('Database connection error', err.stack);
-    } else {
-        console.log('Successfully connected to PostgreSQL database.');
-    }
-});
+// Supabase Connection
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+console.log('Supabase client initialized.');
 
 // --- AUTH MIDDLEWARE ---
 const authMiddleware = (roles = []) => {
@@ -59,8 +50,9 @@ app.post('/api/auth/login', async (req, res) => {
     if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
 
     try {
-        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        const user = result.rows[0];
+        const { data: users, error } = await supabase.from('users').select('*').eq('email', email);
+        if (error) throw error;
+        const user = users[0];
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
@@ -81,91 +73,94 @@ app.post('/api/auth/login', async (req, res) => {
 
 
 // --- Complaint Routes ---
-
-// POST /api/complaints (Create new complaint - Outlet role)
-app.post('/api/complaints', authMiddleware(['Outlet']), async (req, res) => {
+app.post('/api/complaints', authMiddleware(['Outlet', 'Sales Rep']), async (req, res) => {
     try {
         const { outlet_name, outlet_phone, outlet_email, sku, batch_number, quantity, production_date, expiry_date, issue_type_id, description, photos } = req.body;
         const sales_rep_id = req.user.id;
 
-        // Generate unique complaint code
-        const countResult = await pool.query('SELECT COUNT(*) FROM complaints');
-        const complaintCount = parseInt(countResult.rows[0].count, 10) + 1;
-        const complaint_code = `CMP-${String(complaintCount).padStart(6, '0')}`;
+        const { count, error: countError } = await supabase.from('complaints').select('*', { count: 'exact', head: true });
+        if(countError) throw countError;
 
-        const newComplaint = await pool.query(
-            'INSERT INTO complaints (complaint_code, outlet_name, outlet_phone, outlet_email, sales_rep_id, sku, batch_number, quantity, production_date, expiry_date, issue_type_id, description, photos, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
-            [complaint_code, outlet_name, outlet_phone, outlet_email, sales_rep_id, sku, batch_number, quantity, production_date, expiry_date, issue_type_id, description, photos, 'Pending Validation']
-        );
+        const complaint_code = `CMP-${String(count + 1).padStart(6, '0')}`;
 
-        // Log history
-        await pool.query(
-            'INSERT INTO complaint_history (complaint_id, changed_by_id, status_to, remarks) VALUES ($1, $2, $3, $4)',
-            [newComplaint.rows[0].id, req.user.id, 'Pending Validation', 'Complaint created.']
-        );
+        const { data: newComplaint, error: insertError } = await supabase
+            .from('complaints')
+            .insert({
+                complaint_code, outlet_name, outlet_phone, outlet_email, sales_rep_id, sku, batch_number, quantity, production_date, expiry_date, issue_type_id, description, photos, status: 'Pending Validation'
+            })
+            .select()
+            .single();
 
-        res.status(201).json(newComplaint.rows[0]);
+        if (insertError) throw insertError;
+
+        const { error: historyError } = await supabase.from('complaint_history').insert({
+            complaint_id: newComplaint.id,
+            changed_by_id: req.user.id,
+            status_to: 'Pending Validation',
+            remarks: 'Complaint created.'
+        });
+
+        if (historyError) throw historyError;
+
+        res.status(201).json(newComplaint);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error creating complaint' });
     }
 });
 
-// GET /api/complaints (Get all complaints - role-based access)
 app.get('/api/complaints', authMiddleware(), async (req, res) => {
     const { role, id } = req.user;
-    let query = 'SELECT c.*, u.name as sales_rep_name, it.name as issue_type_name FROM complaints c JOIN users u ON c.sales_rep_id = u.id JOIN issue_types it ON c.issue_type_id = it.id';
-    const queryParams = [];
+    let query = supabase.from('complaints').select('*, sales_rep:users!sales_rep_id(name), issue_type:issue_types(name)');
 
-    if (role === 'Sales Rep') {
-        query += ' WHERE c.sales_rep_id = $1';
-        queryParams.push(id);
-    } else if (role === 'Outlet') {
-        // Outlets should probably see complaints they filed, but the schema doesn't link them directly.
-        // Assuming an outlet user is also a sales rep for now.
-         query += ' WHERE c.sales_rep_id = $1';
-         queryParams.push(id);
+    if (role === 'Sales Rep' || role === 'Outlet') {
+        query = query.eq('sales_rep_id', id);
     }
-    // Admin, EXCO, QC, FGS can see all
 
-    query += ' ORDER BY c.created_at DESC';
+    query = query.order('created_at', { ascending: false });
 
     try {
-        const result = await pool.query(query, queryParams);
-        res.json(result.rows);
+        const { data, error } = await query;
+        if (error) throw error;
+        res.json(data);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error fetching complaints' });
     }
 });
 
-// GET /api/complaints/:id (Get single complaint)
 app.get('/api/complaints/:id', authMiddleware(), async (req, res) => {
     try {
         const { id } = req.params;
-        const complaintQuery = 'SELECT c.*, u.name as sales_rep_name, it.name as issue_type_name FROM complaints c JOIN users u ON c.sales_rep_id = u.id JOIN issue_types it ON c.issue_type_id = it.id WHERE c.id = $1';
-        const complaintResult = await pool.query(complaintQuery, [id]);
+        const { data: complaint, error: complaintError } = await supabase
+            .from('complaints')
+            .select('*, sales_rep:users!sales_rep_id(name), issue_type:issue_types(name)')
+            .eq('id', id)
+            .single();
 
-        if (complaintResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Complaint not found' });
-        }
+        if (complaintError) throw complaintError;
+        if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
 
-        const historyResult = await pool.query('SELECT h.*, u.name as changed_by_name FROM complaint_history h JOIN users u ON h.changed_by_id = u.id WHERE h.complaint_id = $1 ORDER BY h.created_at ASC', [id]);
+        const { data: history, error: historyError } = await supabase
+            .from('complaint_history')
+            .select('*, changed_by:users!changed_by_id(name)')
+            .eq('complaint_id', id)
+            .order('created_at', { ascending: true });
 
-        res.json({ complaint: complaintResult.rows[0], history: historyResult.rows });
+        if (historyError) throw historyError;
+
+        res.json({ complaint, history });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error fetching complaint details' });
     }
 });
 
-// PATCH /api/complaints/:id/status (Generic status update)
 app.patch('/api/complaints/:id/status', authMiddleware(), async (req, res) => {
     const { id } = req.params;
     const { status, remarks, ...otherFields } = req.body;
     const { id: userId, role } = req.user;
 
-    // Permissions check
     const validTransitions = {
         'Sales Rep': ['Validated', 'Forwarded to FGS'],
         'FGS Warehouse': ['Forwarded to QC', 'Replacement Approved'],
@@ -179,30 +174,30 @@ app.patch('/api/complaints/:id/status', authMiddleware(), async (req, res) => {
     }
 
     try {
-        const currentComplaintResult = await pool.query('SELECT status FROM complaints WHERE id = $1', [id]);
-        if (currentComplaintResult.rows.length === 0) return res.status(404).json({ message: 'Complaint not found'});
-        const currentStatus = currentComplaintResult.rows[0].status;
-
-        // Build dynamic update query
-        const fieldEntries = Object.entries(otherFields);
-        const setClauses = fieldEntries.map(([key], i) => `${key} = $${i + 3}`).join(', ');
-        const queryValues = [status, id, ...fieldEntries.map(([, value]) => value)];
-
-        let updateQuery = `UPDATE complaints SET status = $1, ${setClauses} WHERE id = $2 RETURNING *`;
-        if(fieldEntries.length === 0) {
-             updateQuery = `UPDATE complaints SET status = $1 WHERE id = $2 RETURNING *`;
-             queryValues.splice(2);
-        }
+        const { data: currentComplaint, error: fetchError } = await supabase.from('complaints').select('status').eq('id', id).single();
+        if (fetchError) throw fetchError;
+        if (!currentComplaint) return res.status(404).json({ message: 'Complaint not found'});
         
-        const updatedComplaint = await pool.query(updateQuery, queryValues);
+        const { data: updatedComplaint, error: updateError } = await supabase
+            .from('complaints')
+            .update({ status, ...otherFields })
+            .eq('id', id)
+            .select()
+            .single();
+        
+        if (updateError) throw updateError;
 
-        // Log history
-        await pool.query(
-            'INSERT INTO complaint_history (complaint_id, changed_by_id, status_from, status_to, remarks) VALUES ($1, $2, $3, $4, $5)',
-            [id, userId, currentStatus, status, remarks || `Status updated to ${status}`]
-        );
+        const { error: historyError } = await supabase.from('complaint_history').insert({
+            complaint_id: id,
+            changed_by_id: userId,
+            status_from: currentComplaint.status,
+            status_to: status,
+            remarks: remarks || `Status updated to ${status}`
+        });
 
-        res.json(updatedComplaint.rows[0]);
+        if (historyError) throw historyError;
+
+        res.json(updatedComplaint);
     } catch (error) {
         console.error('Error updating complaint status:', error);
         res.status(500).json({ message: 'Failed to update complaint' });
@@ -213,18 +208,20 @@ app.patch('/api/complaints/:id/status', authMiddleware(), async (req, res) => {
 // --- User Management Routes (Admin only) ---
 app.get('/api/users', authMiddleware(['Admin']), async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, email, phone, department, role, created_at FROM users ORDER BY created_at DESC');
-    res.json(result.rows);
+    const { data, error } = await supabase.from('users').select('id, name, email, phone, department, role, created_at').order('created_at', { ascending: false });
+    if(error) throw error;
+    res.json(data);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // --- Issue Types Management Routes (Admin only) ---
-app.get('/api/issue-types', authMiddleware(['Admin']), async (req, res) => {
+app.get('/api/issue-types', authMiddleware(['Admin', 'Outlet', 'Sales Rep']), async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM issue_types ORDER BY name');
-    res.json(result.rows);
+    const { data, error } = await supabase.from('issue_types').select('*').order('name');
+    if(error) throw error;
+    res.json(data);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

@@ -11,21 +11,21 @@ export default function Dashboard() {
   const { user } = useAuth();
 
   switch (user?.role) {
-    case 'ADMIN':
+    case 'Admin':
       return <AdminDashboard />;
-    case 'OUTLET_USER':
+    case 'Outlet':
       return <OutletDashboard />;
-    case 'SALES_REP':
+    case 'Sales Rep':
       return <SalesRepDashboard />;
-    case 'FGS_WAREHOUSE':
+    case 'FGS Warehouse':
       return <WarehouseDashboard />;
-    case 'QC_LAB':
+    case 'QC Lab':
       return <QCDashboard />;
-    case 'FINANCE':
+    case 'Finance':
       return <FinanceDashboard />;
     case 'EXCO':
       return <ExcoDashboard />;
     default:
-      return <div>Invalid user role. Please contact support.</div>;
+      return <div>Invalid user role: {user?.role}. Please contact support.</div>;
   }
 }
